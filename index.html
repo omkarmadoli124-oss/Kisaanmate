@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KISANMATE</title>
+<style>
+:root{--bg:#f6f4ec;--ink:#1d2b1f;--g:#2d6a3e;--soil:#7a4b22;--line:#cfc9b6;--card:#fff;--warn:#8a5a00}
+@media(prefers-color-scheme:dark){:root{--bg:#141a15;--ink:#eaf0e6;--g:#7cc48b;--soil:#d9a56b;--line:#37423a;--card:#1c241e;--warn:#f0c060}}
+body.big{font-size:20px}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 Georgia,serif;background:var(--bg);color:var(--ink)}
+header{padding:14px 16px;border-bottom:3px solid var(--g)}h1{margin:0;font-size:1.5rem;letter-spacing:.02em}
+nav{display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap}nav button{flex:1;min-width:90px}
+main{max-width:760px;margin:0 auto;padding:12px 16px 60px}
+button,input,select,textarea{font:inherit;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);width:100%}
+button{cursor:pointer;width:auto}button.p{background:var(--g);color:#fff;border-color:var(--g)}
+:focus-visible{outline:3px solid var(--soil);outline-offset:2px}
+label{display:block;margin:10px 0 2px;font-weight:bold}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+section{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0}
+h2{font-size:1.15rem;margin:0 0 6px;color:var(--g)}.tag{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--soil);color:var(--soil);font-size:.85rem}
+.warn{color:var(--warn)}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}
+.chips label{display:inline-block;font-weight:normal;margin-right:10px}.chips input{width:auto}
+#err{color:#b00020;font-weight:bold}[hidden]{display:none}
+</style></head><body>
+<header><h1 id="t">KISANMATE</h1></header>
+<nav aria-label="Main"><button data-v="new" class="p" id="n1">New assessment</button><button data-v="hist" id="n2">History</button><button data-v="set" id="n3">Settings</button></nav>
+<main>
+<div id="err" role="alert"></div>
+<div id="v-new">
+<button id="demo" type="button">Load soybean demo (Maharashtra, ₹2,000)</button>
+<form id="f" novalidate>
+<section><h2 id="h1">Farm profile</h2>
+<div class="row"><div><label for="state">State</label><input id="state" required value="Maharashtra"></div><div><label for="district">District</label><input id="district" required></div></div>
+<div class="row"><div><label for="crop">Crop</label><input id="crop" required></div><div><label for="stage">Growth stage (optional)</label><input id="stage"></div></div>
+<div class="row"><div><label for="irr">Irrigation (optional)</label><input id="irr"></div><div><label for="budget" id="lb">Treatment budget (₹)</label><input id="budget" type="number" min="0" required></div></div></section>
+<section><h2 id="h2">Problem</h2>
+<label for="sym" id="ls">Describe the symptoms</label><textarea id="sym" rows="3" maxlength="1000"></textarea>
+<fieldset class="chips"><legend>Visible symptoms</legend><label><input type="checkbox" value="yellow leaves">Yellow leaves</label><label><input type="checkbox" value="spots">Spots</label><label><input type="checkbox" value="wilting">Wilting</label><label><input type="checkbox" value="holes">Holes</label><label><input type="checkbox" value="stunted growth">Stunted</label><label><input type="checkbox" value="damaged roots">Damaged roots</label></fieldset>
+<label for="img">Photo (optional, JPEG/PNG/WebP, max 4 MB). Stored on this server only; never sent to AI.</label><input id="img" type="file" accept="image/jpeg,image/png,image/webp">
+<label><input id="dw" type="checkbox" style="width:auto"> If live weather is unavailable, use clearly labelled DEMO weather</label></section>
+<div id="qs"></div>
+<button class="p" id="go" type="submit">Investigate</button>
+</form>
+<div id="out" aria-live="polite"></div>
+</div>
+<div id="v-hist" hidden><div id="hl"></div><div id="hd"></div></div>
+<div id="v-set" hidden><section><h2>Settings</h2>
+<label for="lang">Language</label><select id="lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select>
+<label><input id="bigt" type="checkbox" style="width:auto"> Larger text</label>
+<p>Privacy: history is stored on this server only. Farm text is sent to an AI provider only when the server has an AI key; the result shows which mode ran.</p>
+<button id="clr" type="button">Delete all history</button></section></div>
+</main>
+<script>
+const L={en:{n1:"New assessment",n2:"History",n3:"Settings",h1:"Farm profile",h2:"Problem",lb:"Treatment budget (₹)",ls:"Describe the symptoms",go:"Investigate"},
+hi:{n1:"नया आकलन",n2:"इतिहास",n3:"सेटिंग्स",h1:"खेत की जानकारी",h2:"समस्या",lb:"उपचार बजट (₹)",ls:"लक्षण बताइए",go:"जांच करें"},
+mr:{n1:"नवीन मूल्यांकन",n2:"इतिहास",n3:"सेटिंग्ज",h1:"शेताची माहिती",h2:"समस्या",lb:"उपचार बजेट (₹)",ls:"लक्षणे सांगा",go:"तपासा"}};
+const $=id=>document.getElementById(id);
+function h(tag,txt,attrs={},kids=[]){const e=document.createElement(tag);if(txt!=null)e.textContent=txt;Object.assign(e,attrs);kids.forEach(k=>e.append(k));return e}
+function lang(){const l=L[$("lang").value];for(const k in l)$(k).textContent=l[k]}
+$("lang").onchange=lang;$("bigt").onchange=e=>document.body.classList.toggle("big",e.target.checked);
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{["new","hist","set"].forEach(v=>$("v-"+v).hidden=v!==b.dataset.v);if(b.dataset.v==="hist")hist()});
+$("demo").onclick=()=>{$("district").value="Latur";$("crop").value="Soybean";$("budget").value=2000;$("sym").value="Leaves are turning yellow";$("dw").checked=true};
+let answers={},imageId="";
+async function api(path,opt){const r=await fetch(path,opt);let j={};try{j=await r.json()}catch{}
+ if(!r.ok)throw new Error(j.error||j.detail&&(typeof j.detail==="string"?j.detail:"Please check the form fields.")||"Request failed.");return j}
+$("img").onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append("file",f);
+ try{imageId=(await api("/api/upload",{method:"POST",body:fd})).image_id;$("err").textContent=""}catch(x){imageId="";$("err").textContent=x.message;e.target.value=""}};
+$("f").onsubmit=async e=>{e.preventDefault();$("err").textContent="";$("go").disabled=true;$("out").replaceChildren(h("p","Investigating… checking weather and evidence."));
+ const sel=[...document.querySelectorAll(".chips input:checked")].map(x=>x.value);
+ const body={language:$("lang").value,answers,image_id:imageId,allow_demo_weather:$("dw").checked,
+  profile:{state:$("state").value,district:$("district").value,crop:$("crop").value,growth_stage:$("stage").value,irrigation:$("irr").value,budget_inr:parseFloat($("budget").value)},
+  problem:{symptoms:$("sym").value,selected:sel}};
+ try{const r=await api("/api/assess",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  r.status==="NEEDS_MORE_INFORMATION"?ask(r):show(r)}catch(x){$("out").replaceChildren();$("err").textContent=x.message}
+ $("go").disabled=false};
+function ask(r){$("out").replaceChildren();const box=$("qs");box.replaceChildren(h("section",null,{},[h("h2","A few questions"),r.message?h("p",r.message):h("span")]));
+ r.questions.forEach(q=>{const s=h("select",null,{id:"q_"+q.key});q.options.forEach(o=>s.append(h("option",o,{value:o})));
+  s.onchange=()=>answers[q.key]=s.value;answers[q.key]=q.options[0];
+  box.firstChild.append(h("label",q.text,{htmlFor:s.id}),s)});}
+function sec(t,kids){return h("section",null,{},[h("h2",t),...kids])}
+function show(r,t){$("qs").replaceChildren();const o=t||$("out");o.replaceChildren();
+ o.append(sec("Result",[h("span",r.status,{className:"tag"}),h("p",r.summary),h("p","AI: "+r.ai.mode.toUpperCase()+". "+r.ai.note,{className:"warn"}),h("p","Confidence: "+r.confidence.level+". "+r.confidence.why)]));
+ o.append(sec("Possible explanations (not confirmed)",r.hypotheses.flatMap(x=>[h("strong",x.name),h("p","Supporting: "+(x.supporting.join(" ")||"none yet")+" Missing: "+x.missing.join("; ")+".")])));
+ const w=r.weather;o.append(sec("Weather ["+w.status+"]",[h("p",w.source+" · retrieved "+w.retrieved_at+(w.location?" · "+w.location+" · "+w.period:"")),
+  w.days?h("p",w.days.map(d=>d.date+": "+d.rain_mm+" mm").join(" | ")):h("p",w.reason||"",{className:"warn"})]));
+ const tb=h("table"),th=h("tr");["Priority","Action","Cost (₹)","Basis"].forEach(x=>th.append(h("th",x)));tb.append(th);
+ r.plan.forEach(i=>{const t=h("tr");[i.priority,i.action+" "+i.reason,i.cost_inr==null?"needs local confirmation":i.cost_inr+(i.is_estimate?" (estimate)":""),i.evidence_ids.join(", ")||"unverified suggestion"].forEach(x=>t.append(h("td",x)));tb.append(t)});
+ const b=r.budget;o.append(sec("Action plan",[h("div",null,{style:"overflow-x:auto"},[tb]),h("p","Budget ₹"+b.budget_inr+" · planned ₹"+b.planned_total_inr+" · remaining ₹"+b.remaining_inr+" · within budget: "+(b.within_budget?"yes":"NO")+" (checked independently of the AI)"),
+  ...r.avoid.map(a=>h("p","Avoid: "+a)),h("p","Reassess: "+r.reassess),h("p","Expert help: "+r.expert_when)]));
+ if(r.conflicts.length)o.append(sec("Conflicts",r.conflicts.map(c=>h("p",c))));
+ o.append(sec("Evidence sources",r.evidence.map(e=>h("p",null,{},[h("a",e.title+" ("+e.publisher+")",{href:e.link,target:"_blank",rel:"noopener noreferrer"}),h("br"),h("small",e.note)]))));
+ o.append(sec("Limitations",r.limitations.map(x=>h("p",x))));
+ o.append(sec("Investigation steps",[h("p",r.trace.join(" "))]))}
+async function hist(){$("hd").replaceChildren();const l=await api("/api/history");$("hl").replaceChildren(...(l.length?l.map(i=>{const b=h("button",i.created+" · "+i.crop+" · "+i.status);b.style.cssText="display:block;width:100%;margin:6px 0;text-align:left";
+ b.onclick=async()=>{const r=await api("/api/history/"+i.id);const d=h("div");$("hd").replaceChildren(d);show(r,d)};return b}):[h("p","No assessments yet. Start a new assessment.")]))}
+$("clr").onclick=async()=>{if(confirm("Delete all saved assessments?")){await api("/api/history",{method:"DELETE"});alert("History deleted.")}};
+</script></body></html>
